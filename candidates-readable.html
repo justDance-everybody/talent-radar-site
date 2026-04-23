@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>candidates.json 可读版</title>
+<style>
+:root{
+  --bg:#0f1115; --panel:#161a22; --panel2:#1d222d; --border:#2a2f3b;
+  --fg:#e6e8ee; --muted:#8a91a3; --accent:#4ea1ff; --ok:#4ec9b0;
+  --warn:#e4a05b; --bad:#ef6a6a; --gold:#d4b94a;
+  --pf1:#4ea1ff; --pf2:#b988ff; --pf3:#4ec9b0; --pf4:#e4a05b; --pf5:#ff6b9f;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB",system-ui,sans-serif;font-size:14px;line-height:1.5}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:1400px;margin:0 auto;padding:20px}
+header{border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:20px}
+h1{margin:0;font-size:22px;font-weight:600}
+.sub{color:var(--muted);font-size:13px;margin-top:6px}
+.sub b{color:var(--fg)}
+.grid{display:grid;grid-template-columns:280px 1fr;gap:20px}
+.sidebar{position:sticky;top:20px;align-self:start;max-height:calc(100vh - 40px);overflow-y:auto}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:14px}
+.panel h3{margin:0 0 10px 0;font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px}
+.stat-row .lbl{color:var(--muted)}
+.stat-row .val{font-weight:600;font-feature-settings:"tnum"}
+.bar{display:flex;align-items:center;gap:8px;font-size:12px;margin:4px 0}
+.bar .bar-lbl{width:100px;color:var(--muted);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar .bar-fill{flex:1;height:14px;background:var(--panel2);border-radius:3px;overflow:hidden;position:relative}
+.bar .bar-fill span{display:block;height:100%;background:var(--accent)}
+.bar .bar-val{width:24px;text-align:right;color:var(--muted);font-feature-settings:"tnum"}
+.filter-group{margin-bottom:14px}
+.filter-group:last-child{margin-bottom:0}
+.chip{display:inline-block;padding:4px 10px;border:1px solid var(--border);border-radius:14px;font-size:12px;margin:2px 2px;cursor:pointer;background:var(--panel2);color:var(--muted);user-select:none}
+.chip:hover{border-color:var(--accent)}
+.chip.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.chip.mode-full_time_priority.active{background:var(--ok);border-color:var(--ok)}
+.chip.mode-community_collaboration.active{background:var(--pf2);border-color:var(--pf2)}
+.chip.mode-watchlist.active{background:var(--muted);border-color:var(--muted)}
+.score-slider{display:flex;align-items:center;gap:8px;margin-top:8px}
+.score-slider input{flex:1}
+.score-slider .num{width:32px;text-align:center;font-feature-settings:"tnum";color:var(--muted)}
+.search-box{width:100%;padding:8px 10px;background:var(--panel2);border:1px solid var(--border);border-radius:5px;color:var(--fg);font-family:inherit;font-size:13px}
+.search-box:focus{outline:none;border-color:var(--accent)}
+.btn-reset{display:block;width:100%;padding:8px;background:transparent;border:1px solid var(--border);border-radius:5px;color:var(--muted);cursor:pointer;font-size:12px;margin-top:8px}
+.btn-reset:hover{border-color:var(--accent);color:var(--fg)}
+
+.list-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;color:var(--muted);font-size:13px}
+.list-head .sort{cursor:pointer}
+.list-head .sort:hover{color:var(--fg)}
+
+.card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px;cursor:pointer;transition:border-color 0.15s}
+.card:hover{border-color:var(--accent)}
+.card.expanded{border-color:var(--accent)}
+.card-head{display:flex;gap:12px;align-items:flex-start}
+.card-score{flex-shrink:0;width:52px;height:52px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;font-feature-settings:"tnum";background:var(--panel2)}
+.card-score.s85{background:#4ec9b022;color:var(--ok);border:1px solid var(--ok)}
+.card-score.s70{background:#4ea1ff22;color:var(--accent);border:1px solid var(--accent)}
+.card-score.s55{background:#e4a05b22;color:var(--warn);border:1px solid var(--warn)}
+.card-main{flex:1;min-width:0}
+.card-name{font-size:16px;font-weight:600;margin:0 0 3px 0}
+.card-meta{color:var(--muted);font-size:12px;margin-bottom:6px}
+.card-why{font-size:13px;color:var(--fg);margin:6px 0 0 0;line-height:1.55}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;margin:2px 4px 2px 0;background:var(--panel2);color:var(--muted)}
+.tag.pf-runtime{background:#4ea1ff22;color:var(--pf1)}
+.tag.pf-memory{background:#b988ff22;color:var(--pf2)}
+.tag.pf-sci{background:#4ec9b022;color:var(--pf3)}
+.tag.pf-eval{background:#e4a05b22;color:var(--pf4)}
+.tag.pf-young{background:#ff6b9f22;color:var(--pf5)}
+.tag.mode-full_time_priority{background:#4ec9b022;color:var(--ok)}
+.tag.mode-community_collaboration{background:#b988ff22;color:var(--pf2)}
+.tag.mode-watchlist{background:#8a91a322;color:var(--muted)}
+
+.detail{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);display:none}
+.card.expanded .detail{display:block}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.detail-sec h4{margin:0 0 8px 0;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:600}
+.score-table{width:100%;border-collapse:collapse;font-size:12px;font-feature-settings:"tnum"}
+.score-table td{padding:3px 0;border-bottom:1px dashed var(--border)}
+.score-table td:last-child{text-align:right;font-weight:600}
+.score-table td.penalty:last-child{color:var(--bad)}
+.score-table td.bonus:last-child{color:var(--ok)}
+.score-table tr.total td{font-size:14px;font-weight:700;padding-top:6px;border-bottom:none}
+.ev-list{list-style:none;padding:0;margin:0}
+.ev-list li{padding:4px 0;font-size:12px;border-bottom:1px dashed var(--border)}
+.ev-list li:last-child{border-bottom:none}
+.ev-type{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;background:var(--panel2);color:var(--muted);margin-right:6px;text-transform:uppercase}
+.contacts{font-size:12px;line-height:1.8}
+.contacts .ckey{color:var(--muted);display:inline-block;width:70px}
+.risk{margin-top:10px}
+.risk-tag{display:inline-block;padding:3px 8px;background:#ef6a6a22;color:var(--bad);border-radius:3px;font-size:11px;margin:2px}
+.notes{margin-top:10px;padding:8px 10px;background:var(--panel2);border-radius:5px;font-size:12px;color:var(--muted);line-height:1.6}
+.empty{text-align:center;padding:40px;color:var(--muted)}
+@media(max-width:900px){
+  .grid{grid-template-columns:1fr}
+  .sidebar{position:static;max-height:none}
+  .detail-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<h1>Joule 人才雷达 · <span style="color:var(--muted);font-weight:400">长时程任务 agent · token 调度约束架构</span></h1>
+<div class="sub">源文件 <b>candidates.json</b> · 生成时间 <b>2026-04-21</b> · 本轮候选人 <b id="count-total">50</b> · 平均分 <b id="count-avg">-</b> · 高分(≥85) <b id="count-top">-</b> · 全职优先 <b id="count-full">-</b></div>
+</header>
+
+<div class="grid">
+<aside class="sidebar">
+
+<div class="panel">
+<h3>画像分布</h3>
+<div id="profile-bars"></div>
+</div>
+
+<div class="panel">
+<h3>推荐模式</h3>
+<div id="mode-bars"></div>
+</div>
+
+<div class="panel">
+<h3>筛选 · 画像</h3>
+<div id="profile-filters"></div>
+</div>
+
+<div class="panel">
+<h3>筛选 · 推荐模式</h3>
+<div id="mode-filters"></div>
+</div>
+
+<div class="panel">
+<h3>筛选 · 分数区间</h3>
+<div class="score-slider">
+  <span class="num" id="score-min-lbl">55</span>
+  <input type="range" id="score-min" min="55" max="100" value="55">
+</div>
+<div class="score-slider">
+  <span class="num" id="score-max-lbl">100</span>
+  <input type="range" id="score-max" min="55" max="100" value="100">
+</div>
+</div>
+
+<div class="panel">
+<h3>筛选 · 身份视角</h3>
+<div id="identity-filters">
+  <span class="chip" data-identity="all">全部</span>
+  <span class="chip" data-identity="student">学生/博士</span>
+  <span class="chip" data-identity="researcher">研究员/PI</span>
+  <span class="chip" data-identity="engineer">工程师</span>
+  <span class="chip" data-identity="founder">创业者/已创办</span>
+</div>
+</div>
+
+<div class="panel">
+<h3>搜索</h3>
+<input type="text" class="search-box" id="search" placeholder="姓名、机构、关键字...">
+<button class="btn-reset" id="btn-reset">重置所有筛选</button>
+</div>
+
+</aside>
+
+<main>
+<div class="list-head">
+<span>显示 <b id="list-count">-</b> / 50 人</span>
+<span>
+  <span class="sort" data-sort="score">按分数 ↓</span> ·
+  <span class="sort" data-sort="name">按姓名</span>
+</span>
+</div>
+<div id="list"></div>
+</main>
+
+</div>
+</div>
+
+<script id="data" type="application/json">{"generated_at": "2026-04-21", "project": "Joule", "project_focus": "长时程任务 agent 的海量 token 调度约束架构设计 (long-horizon task agent runtime with token-scheduling-under-constraint architecture)", "round": 1, "total_candidates": 50, "scoring_notes": {"direction_match_anchor": "方向匹配度(0-25) 由三个子信号加权: long-horizon execution(0-10) + token/context 调度架构(0-10) + runtime 工程可落地性(0-5)", "honesty_rule": "未验证信息标注为'未确认'/'推测';联系方式只记录公开可得;所有得分可追溯到 evidence 链接", "penalty_locked_definition": "已签约/任职于大厂核心岗或顶级实验室终身教职,切换成本极高"}, "candidates": [{"id": "xiao-liu-thu", "name": "Xiao Liu (刘潇)", "current_role": "PhD student (5th year, graduating June 2026)", "current_institution": "Tsinghua University, Knowledge Engineering Group (KEG)", "location": "Beijing, China", "primary_profile": "Task Evaluation / Benchmark / Evals", "secondary_profiles": ["Agent Runtime / Orchestration", "High-potential Young Talent"], "core_contribution_mode": ["评测体系", "系统构建", "高潜后备"], "score_total": 89, "score_breakdown": {"direction_match": 22, "engineering": 18, "theory": 12, "open_source": 10, "evals": 14, "availability": 9, "young_bonus": 4, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 0}, "recommended_mode": "full_time_priority", "why_fit": "AgentBench 一作,定义了 LLM-as-Agent 长时程推理与决策能力评测;同时主导 Open-AutoGLM(25k⭐ 手机 agent)、ChatGLM(41k⭐)、GLM-130B 等生产级系统,既懂 benchmark 也懂 runtime 工程。6 个月后毕业且公开在求职,方向与 Joule 长时程 agent 的评测闭环 + runtime 高度匹配。国内顶级 KEG 产出的 builder,稀缺。", "public_contacts": {"email": "xiaoliu.cs@outlook.com (从 GitHub profile 推测,需再核)", "github": "https://github.com/xiao9905", "homepage": "未找到个人主页(建议通过 Tsinghua KEG 或 Jie Tang 实验室引荐)", "scholar": "https://scholar.google.com/(xiao-liu-tsinghua)", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2308.03688", "title": "AgentBench: Evaluating LLMs as Agents (ICLR 2024)"}, {"type": "github", "url": "https://github.com/THUDM/AgentBench", "title": "AgentBench repo"}, {"type": "github", "url": "https://github.com/xiao9905", "title": "GitHub profile with pinned AgentBench, Open-AutoGLM, GLM-130B, ChatGLM-6B"}, {"type": "homepage", "url": "https://keg.cs.tsinghua.edu.cn/jietang/", "title": "Supervisor Jie Tang lab page"}], "risk_flags": ["可能被 Zhipu AI 或国内大厂优先抢人", "毕业后可能选择国内学术/Zhipu 方向"], "notes": "Joule 应在 2026 年 Q2 之前就明确接触,错过毕业窗口后难度上升一个量级。语言优势 + 长期 long-horizon 评测经验是稀缺组合。"}, {"id": "chunqiu-steven-xia-uiuc", "name": "Chunqiu Steven Xia", "current_role": "Final-year PhD student (CS); on 2025-26 tenure-track faculty and industry research scientist job market", "current_institution": "University of Illinois Urbana-Champaign (advisor: Lingming Zhang)", "location": "Urbana-Champaign, IL, USA", "primary_profile": "Agent Runtime / Orchestration", "secondary_profiles": ["Task Evaluation / Benchmark / Evals", "High-potential Young Talent"], "core_contribution_mode": ["系统构建", "评测体系", "高潜后备"], "score_total": 87, "score_breakdown": {"direction_match": 22, "engineering": 19, "theory": 12, "open_source": 9, "evals": 13, "availability": 8, "young_bonus": 4, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 0}, "recommended_mode": "full_time_priority", "why_fit": "Agentless 的核心作者,该框架被 OpenAI / Meta / DeepSeek 直接用于评估自家模型;Live-SWE-agent(2511.13646)实现 77.4% SWE-bench Verified 的 runtime 自进化,直接命中'长时程 agent 在真实任务中自我优化'命题。工程落地力是 agent 领域里少数经过大厂生产验证的。正在找工作,是 Joule 本轮最可得的高分候选之一。", "public_contacts": {"email": "chunqiu2@illinois.edu", "github": "https://github.com/brutalsavage", "homepage": "https://steven.cs.illinois.edu/", "scholar": "需在 Google Scholar 搜 Chunqiu Steven Xia", "x": "https://twitter.com/steven_xia_", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2511.13646", "title": "Live-SWE-agent: Self-evolving SE agent, 77.4% SWE-bench Verified"}, {"type": "github", "url": "https://github.com/OpenAutoCoder/Agentless", "title": "Agentless framework (FSE 2025 distinguished paper)"}, {"type": "homepage", "url": "https://steven.cs.illinois.edu/", "title": "Personal page incl. job-market announcement"}], "risk_flags": ["同时在找 tenure-track,学术路径可能优先", "工业界顶级 lab 会竞争激烈"], "notes": "是本轮技术最扎实且最可得的 full-time 目标之一。若能在其学术 offer 决定前接触,成功率更高。"}, {"id": "tianbao-xie-hku", "name": "Tianbao Xie", "current_role": "PhD student", "current_institution": "University of Hong Kong, XLANG Lab (advisor: Tao Yu)", "location": "Hong Kong", "primary_profile": "Agent Runtime / Orchestration", "secondary_profiles": ["Task Evaluation / Benchmark / Evals", "High-potential Young Talent"], "core_contribution_mode": ["系统构建", "评测体系", "高潜后备"], "score_total": 85, "score_breakdown": {"direction_match": 22, "engineering": 18, "theory": 11, "open_source": 9, "evals": 13, "availability": 8, "young_bonus": 4, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 0}, "recommended_mode": "full_time_priority", "why_fit": "OSWorld(NeurIPS 2024)一作,把 computer-use agent 的评测从玩具 benchmark 推到真操作系统级别;OpenAgents 早期核心 builder,OpenCUA 继续做 grounding + foundation。方向是 Joule long-horizon 的关键上游——用户真实任务的 runtime 抽象。中文母语 + 港校 PhD,对国内团队协作成本低。", "public_contacts": {"email": "需在个人主页获取(homepage 连接当前无法访问,建议直接 github DM)", "github": "https://github.com/Timothyxxx (推测,需验证)", "homepage": "https://tianbaoxie.com/ (访问异常,需重试)", "scholar": "需搜 Tianbao Xie Google Scholar", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2404.07972", "title": "OSWorld: Benchmarking Multimodal Agents in Real Computer Envs"}, {"type": "github", "url": "https://github.com/xlang-ai/OSWorld", "title": "OSWorld repo (XLANG Lab)"}, {"type": "github", "url": "https://github.com/xlang-ai/OpenCUA", "title": "OpenCUA: open foundations for computer-use agents"}], "risk_flags": ["港校毕业后可能回国内大厂(字节/DeepSeek/Moonshot)", "XLANG 实验室可能优先内部转化"], "notes": "OSWorld-Verified 发布时间晚近,方向在持续做深;接触窗口在 PhD 最后 1-2 年。"}, {"id": "guangxuan-xiao-mit", "name": "Guangxuan Xiao", "current_role": "PhD student", "current_institution": "MIT HAN Lab (advisor: Song Han)", "location": "Cambridge, MA, USA", "primary_profile": "Memory / Context / Latent Communication", "secondary_profiles": ["Agent Runtime / Orchestration"], "core_contribution_mode": ["理论研究", "系统构建", "高潜后备"], "score_total": 83, "score_breakdown": {"direction_match": 24, "engineering": 17, "theory": 14, "open_source": 9, "evals": 7, "availability": 6, "young_bonus": 4, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 0}, "recommended_mode": "full_time_priority", "why_fit": "StreamingLLM 的核心作者,发现 attention sink 机制并把 LLM 有效上下文推到 4M+ tokens;DuoAttention 把长上下文推理计算/显存再压一倍。这**直接**是 Joule '海量 token 调度约束架构'的核心技术栈。MIT 韩松学生 builder 气质强。", "public_contacts": {"email": "xgx@mit.edu (推测, MIT 标准域名)", "github": "https://github.com/Guangxuan-Xiao (推测)", "homepage": "https://hanlab.mit.edu/ (通过 Song Han 实验室可联系)", "scholar": "需搜 Guangxuan Xiao", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2309.17453", "title": "StreamingLLM: Efficient Streaming LMs with Attention Sinks (ICLR 2024)"}, {"type": "github", "url": "https://github.com/mit-han-lab/streaming-llm", "title": "StreamingLLM repo"}, {"type": "homepage", "url": "https://hanlab.mit.edu/projects/streamingllm", "title": "MIT HAN Lab project page"}], "risk_flags": ["MIT HAN Lab 毕业生通常去 NVIDIA / 苹果核心组", "Song Han 与 NVIDIA 关系紧密,可能方向偏硬件推理"], "notes": "若能在其毕业前接触,是 Joule token 调度架构方向**最契合的 IC 候选**。"}, {"id": "john-yang-princeton", "name": "John Yang", "current_role": "PhD student / researcher, Princeton NLP", "current_institution": "Princeton University (SWE-bench / SWE-smith team)", "location": "Princeton, NJ, USA", "primary_profile": "Task Evaluation / Benchmark / Evals", "secondary_profiles": ["Agent Runtime / Orchestration"], "core_contribution_mode": ["评测体系", "系统构建"], "score_total": 83, "score_breakdown": {"direction_match": 21, "engineering": 17, "theory": 13, "open_source": 10, "evals": 15, "availability": 5, "young_bonus": 4, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": -2}, "recommended_mode": "community_collaboration", "why_fit": "SWE-bench、SWE-smith 核心维护者,定义了 code agent 长时程评测的事实标准。SWE-bench Verified 是 OpenAI 和全行业用来衡量 agent 能力的那把尺。**Joule 如果做 long-horizon code agent runtime,绕不开 SWE-bench 这一套体系**——跟 John Yang 建立关系等于获得这条评测路径的正门。", "public_contacts": {"email": "需从 Princeton NLP 页面获取", "github": "https://github.com/john-b-yang (推测)", "homepage": "需搜 John Yang Princeton NLP 主页", "scholar": "需手动搜", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2504.21798", "title": "SWE-smith: Scaling Data for SE Agents"}, {"type": "github", "url": "https://github.com/swe-bench/SWE-bench", "title": "SWE-bench repo"}, {"type": "homepage", "url": "https://swesmith.com/", "title": "SWE-smith homepage"}], "risk_flags": ["Princeton NLP 有较强学术惯性", "可能优先学术路径"], "notes": "作为评测路径的共建合作方价值极高;是否能全职要看其毕业计划。"}, {"id": "yihua-cheng-uchicago", "name": "Yihua Cheng", "current_role": "PhD student / LMCache co-creator", "current_institution": "University of Chicago (advisor: Junchen Jiang)", "location": "Chicago, IL, USA", "primary_profile": "Memory / Context / Latent Communication", "secondary_profiles": ["Agent Runtime / Orchestration"], "core_contribution_mode": ["系统构建", "理论研究", "高潜后备"], "score_total": 82, "score_breakdown": {"direction_match": 24, "engineering": 18, "theory": 10, "open_source": 9, "evals": 7, "availability": 7, "young_bonus": 4, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 0}, "recommended_mode": "full_time_priority", "why_fit": "LMCache 的命名者与核心实现者,把 KV cache 抽出 GPU、跨 engine 共享、与 vLLM 集成实现 15× 吞吐提升。LMCache 已成为 vLLM 生态最活跃的 KV cache layer。**直接命中 Joule 的 token 调度约束架构核心**。", "public_contacts": {"email": "通过 LMCache 团队或 UChicago CS 查找", "github": "https://github.com/LMCache (组织),个人账号需查", "homepage": "https://lmcache.ai/", "scholar": "需搜 Yihua Cheng UChicago", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2510.09665", "title": "LMCache: Efficient KV Cache Layer for Enterprise-Scale LLM Inference"}, {"type": "github", "url": "https://github.com/LMCache/LMCache", "title": "LMCache repo"}, {"type": "homepage", "url": "https://blog.lmcache.ai/en/2026/04/17/lmcache-a-journey/", "title": "LMCache journey blog (2026-04)"}], "risk_flags": ["LMCache 已商业化(有独立域名/博客),可能在推进自有创业路线", "与 vLLM 生态深度绑定"], "notes": "如果 LMCache 是研究 side project → 争取全职;如果已成公司 → 改 community_collaboration。**接触前先确认其商业化程度**。"}, {"id": "weize-chen-thu", "name": "Weize Chen (陈炜泽)", "current_role": "PhD student (4th year)", "current_institution": "Tsinghua University, THUNLP (advisor: Zhiyuan Liu)", "location": "Beijing, China", "primary_profile": "Agent Runtime / Orchestration", "secondary_profiles": ["High-potential Young Talent"], "core_contribution_mode": ["系统构建", "理论研究", "高潜后备"], "score_total": 81, "score_breakdown": {"direction_match": 19, "engineering": 17, "theory": 12, "open_source": 9, "evals": 8, "availability": 9, "young_bonus": 4, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 3}, "recommended_mode": "full_time_priority", "why_fit": "ChatDev 和 Multi-Agent Evolving Orchestration(2505.19591)核心作者,OpenBMB 生态深度参与者。THUNLP 里兼具系统感和工程落地的 agent builder。方向偏应用/多智能体协作,与 Joule 的 runtime 底层需要验证契合度。", "public_contacts": {"email": "chenweize1998@gmail.com (homepage 推测;主页证书过期无法直接验证)", "github": "https://github.com/chenweize1998 (推测)", "homepage": "https://weizechen.com/ (当前证书过期)", "scholar": "需搜 Weize Chen THUNLP", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2307.07924", "title": "ChatDev (ACL 2024)"}, {"type": "arxiv", "url": "https://arxiv.org/abs/2505.19591", "title": "Multi-Agent Collaboration via Evolving Orchestration"}], "risk_flags": ["ChatDev 偏应用包装,需验证是否在深入 runtime 层", "THUNLP 毕业生通常进 Zhipu / 大厂"], "notes": "主要风险是方向偏 multi-agent 协作协议,而 Joule 要的是 runtime 调度;可以 community 合作先验证匹配度再谈全职。"}, {"id": "woosuk-kwon-berkeley", "name": "Woosuk Kwon", "current_role": "UC Berkeley PhD / vLLM co-creator", "current_institution": "UC Berkeley (Sky Computing Lab)", "location": "Berkeley, CA, USA", "primary_profile": "Memory / Context / Latent Communication", "secondary_profiles": ["Agent Runtime / Orchestration"], "core_contribution_mode": ["系统构建", "理论研究"], "score_total": 81, "score_breakdown": {"direction_match": 23, "engineering": 20, "theory": 13, "open_source": 10, "evals": 5, "availability": 4, "young_bonus": 3, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 0}, "recommended_mode": "community_collaboration", "why_fit": "vLLM 核心作者,PagedAttention 把 LLM serving 的 KV 管理从 OS 虚拟内存借鉴过来。vLLM 已成 LLM 推理事实标准,**这就是 Joule token 调度架构在 serving 层的标杆**。", "public_contacts": {"email": "需从 Berkeley EECS 页面获取", "github": "https://github.com/WoosukKwon", "homepage": "https://woosuk.me/ (推测)", "scholar": "需手动搜", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2309.06180", "title": "Efficient Memory Management with PagedAttention (SOSP 2023)"}, {"type": "github", "url": "https://github.com/vllm-project/vllm", "title": "vLLM repo"}, {"type": "homepage", "url": "https://www2.eecs.berkeley.edu/Pubs/TechRpts/2025/EECS-2025-192.pdf", "title": "Berkeley PhD thesis 2025"}], "risk_flags": ["vLLM 社区与多家公司深度绑定,商业化方向多", "刚毕业可能已被 Anthropic/OpenAI/NVIDIA 锁定"], "notes": "需核实其当前雇主;若仍未完全锁定,可以 community 先建立关系。"}, {"id": "ying-sheng-stanford", "name": "Ying Sheng", "current_role": "PhD (recent) / LMSYS co-founder / SGLang co-originator", "current_institution": "Stanford University (recently graduated, status evolving)", "location": "USA (Stanford/Bay Area)", "primary_profile": "Memory / Context / Latent Communication", "secondary_profiles": ["Agent Runtime / Orchestration"], "core_contribution_mode": ["系统构建", "理论研究"], "score_total": 80, "score_breakdown": {"direction_match": 22, "engineering": 19, "theory": 13, "open_source": 10, "evals": 6, "availability": 4, "young_bonus": 3, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 0}, "recommended_mode": "community_collaboration", "why_fit": "SGLang 的原始 idea 来自她在 Stanford 的工作,目前是 LMSYS.org 联合创始人。SGLang RadixAttention + 调度器是 Joule 关心的 '约束架构' 在 serving 层的最佳参考。FlexGen、H2O 合作者。", "public_contacts": {"email": "需从 Stanford MAST lab 页面获取", "github": "https://github.com/Ying1123 (推测)", "homepage": "https://sites.google.com/view/yingsheng", "scholar": "https://scholar.google.com/citations (Ying Sheng)", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2312.07104", "title": "SGLang: Efficient Execution of Structured LM Programs"}, {"type": "github", "url": "https://github.com/sgl-project/sglang", "title": "SGLang repo"}], "risk_flags": ["LMSYS 核心成员,创业路径很可能", "难以全职,但合作空间大"], "notes": "作为 Joule 的 runtime / serving 层顾问或共建方向 benchmark 的长期盟友。"}, {"id": "lianmin-zheng-berkeley", "name": "Lianmin Zheng", "current_role": "UC Berkeley PhD (recent) / SGLang core / LMSYS co-founder", "current_institution": "UC Berkeley (Sky Computing Lab, advisor: Ion Stoica)", "location": "Berkeley, CA, USA", "primary_profile": "Memory / Context / Latent Communication", "secondary_profiles": ["Agent Runtime / Orchestration"], "core_contribution_mode": ["系统构建", "理论研究"], "score_total": 80, "score_breakdown": {"direction_match": 22, "engineering": 19, "theory": 13, "open_source": 10, "evals": 6, "availability": 4, "young_bonus": 3, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 0}, "recommended_mode": "community_collaboration", "why_fit": "SGLang 早期核心发起人,Vicuna / FastChat / Chatbot Arena / H2O 合作者。对 LLM serving 调度和 KV cache 管理有深刻工程理解,在'token 调度约束架构'上是最顶级的工程系统 builder 之一。", "public_contacts": {"email": "lmzheng@berkeley.edu (推测)", "github": "https://github.com/merrymercy", "homepage": "https://lmzheng.net/", "scholar": "https://scholar.google.com/citations?user=_7Q8uIYAAAAJ", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "homepage", "url": "https://lmzheng.net/publications/", "title": "Publications incl. SGLang, Vicuna, Chatbot Arena"}, {"type": "github", "url": "https://github.com/sgl-project/sglang", "title": "SGLang repo"}], "risk_flags": ["LMSYS / SGLang 商业化概率高", "Ion Stoica 门下学生倾向创业"], "notes": "争取成为 Joule 的技术顾问 / 合作 benchmark 设计者。"}, {"id": "carlos-jimenez-princeton", "name": "Carlos E. Jimenez", "current_role": "PhD student, Princeton NLP", "current_institution": "Princeton University", "location": "Princeton, NJ, USA", "primary_profile": "Task Evaluation / Benchmark / Evals", "secondary_profiles": ["Agent Runtime / Orchestration"], "core_contribution_mode": ["评测体系", "系统构建"], "score_total": 80, "score_breakdown": {"direction_match": 20, "engineering": 16, "theory": 13, "open_source": 9, "evals": 15, "availability": 5, "young_bonus": 4, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": -2}, "recommended_mode": "community_collaboration", "why_fit": "SWE-bench 原始论文合作者,SWE-agent / SWE-smith 持续参与。长时程 code agent 评测领域最有影响力的研究者之一。", "public_contacts": {"email": "需从 Princeton 页面获取", "github": "https://github.com/carlosejimenez (推测)", "homepage": "https://www.carlosejimenez.com/ (推测)", "scholar": "需手动搜", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2310.06770", "title": "SWE-bench: Can LMs Resolve Real-World GitHub Issues?"}, {"type": "arxiv", "url": "https://arxiv.org/abs/2504.21798", "title": "SWE-smith"}], "risk_flags": ["学术路径可能性高"], "notes": "可与 John Yang 合并做 benchmark 共建合作。"}, {"id": "haotian-luo-ultrahorizon", "name": "Haotian Luo", "current_role": "PhD student (推测),UltraHorizon 一作", "current_institution": "未完全确认,推测为 Tsinghua / HKUST(文章作者多数来自这两所)", "location": "China / Hong Kong", "primary_profile": "Task Evaluation / Benchmark / Evals", "secondary_profiles": ["Agent Runtime / Orchestration", "High-potential Young Talent"], "core_contribution_mode": ["评测体系", "系统构建", "高潜后备"], "score_total": 79, "score_breakdown": {"direction_match": 23, "engineering": 14, "theory": 11, "open_source": 8, "evals": 13, "availability": 8, "young_bonus": 5, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": -3, "penalty_application_layer": 0}, "recommended_mode": "full_time_priority", "why_fit": "UltraHorizon(2509.21766)一作,把 agent 评测推到 35k+ token / 60+ tool call / 最高 200k+ token / 400+ tool call 的'超长时程'范围——**这就是 Joule 要攻的分布**。揭示 in-context locking 和 functional gap 是两类核心失效模式,对后续 runtime 设计有直接方向意义。", "public_contacts": {"email": "未找到公开邮箱", "github": "https://github.com/StarDewXXX (repo 拥有者,推测为本人或合作者)", "homepage": "未找到公开个人主页", "scholar": "需手动查 Haotian Luo (清华/港科)", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2509.21766", "title": "UltraHorizon: Benchmarking Agent Capabilities in Ultra Long-Horizon"}, {"type": "github", "url": "https://github.com/StarDewXXX/UltraHorizon", "title": "UltraHorizon repo"}], "risk_flags": ["公开身份信息不足需要验证", "同名较多需精确定位"], "notes": "**联系方式需补做一轮定向 outreach** 以确认身份。方向极度匹配,一旦确认值得立即接触。"}, {"id": "ofir-press-princeton-stanford", "name": "Ofir Press", "current_role": "Postdoc → Assistant Prof (推测)", "current_institution": "Princeton / Stanford (近期轨迹需核)", "location": "USA", "primary_profile": "Task Evaluation / Benchmark / Evals", "secondary_profiles": ["Agent Runtime / Orchestration"], "core_contribution_mode": ["理论研究", "评测体系"], "score_total": 79, "score_breakdown": {"direction_match": 20, "engineering": 13, "theory": 15, "open_source": 8, "evals": 14, "availability": 4, "young_bonus": 3, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 2}, "recommended_mode": "community_collaboration", "why_fit": "SWE-bench / SWE-agent / Self-Ask 等多篇有影响力的 agent 与长上下文理论论文共同作者,理论牵引力强。ALiBi(位置编码)作者,长上下文基础工作的原创者。", "public_contacts": {"email": "需从其主页获取", "github": "https://github.com/ofirpress", "homepage": "https://ofir.io/", "scholar": "需搜", "x": "https://twitter.com/OfirPress (推测)", "linkedin": "未确认"}, "evidence": [{"type": "homepage", "url": "https://ofir.io/", "title": "Personal homepage"}, {"type": "arxiv", "url": "https://arxiv.org/abs/2310.06770", "title": "SWE-bench co-author"}], "risk_flags": ["学术路径倾向", "可能已接受教职 offer"], "notes": "理论 + 评测视角的长期合作者。"}, {"id": "tao-yu-hku", "name": "Tao Yu (余涛)", "current_role": "Assistant Professor", "current_institution": "University of Hong Kong (XLANG Lab director)", "location": "Hong Kong", "primary_profile": "Agent Runtime / Orchestration", "secondary_profiles": ["Task Evaluation / Benchmark / Evals"], "core_contribution_mode": ["系统构建", "理论研究"], "score_total": 79, "score_breakdown": {"direction_match": 22, "engineering": 16, "theory": 14, "open_source": 9, "evals": 13, "availability": 3, "young_bonus": 2, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 0}, "recommended_mode": "community_collaboration", "why_fit": "XLANG Lab director,UnifiedSKG / OSWorld / OpenAgents / OpenCUA 等多个 agent runtime + benchmark 的 PI。中文母语,是 Joule 重要的学术盟友。", "public_contacts": {"email": "tyu@cs.hku.hk (推测)", "github": "https://github.com/taoyds", "homepage": "https://taoyds.github.io/", "scholar": "需搜", "x": "未确认", "linkedin": "https://www.linkedin.com/in/tao-yu-b9b551a5"}, "evidence": [{"type": "homepage", "url": "https://taoyds.github.io/", "title": "Personal homepage"}, {"type": "homepage", "url": "https://xlang.ai/", "title": "XLANG Lab homepage"}], "risk_flags": ["HKU AP,学术锁定"], "notes": "长期 community 合作 / 联合招收学生。"}, {"id": "shuyan-zhou-cmu", "name": "Shuyan Zhou", "current_role": "PhD (recent) / Assistant Professor-bound (推测)", "current_institution": "CMU LTI (previously)", "location": "USA", "primary_profile": "Task Evaluation / Benchmark / Evals", "secondary_profiles": ["Agent Runtime / Orchestration"], "core_contribution_mode": ["评测体系", "系统构建"], "score_total": 79, "score_breakdown": {"direction_match": 21, "engineering": 15, "theory": 13, "open_source": 9, "evals": 15, "availability": 4, "young_bonus": 3, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": -1}, "recommended_mode": "community_collaboration", "why_fit": "WebArena 一作,现实 web 环境 812 个长时程任务 benchmark 的原始设计者。VisualWebArena 扩展作者。Joule 如果关心 browser / web agent,这是评测体系入口。", "public_contacts": {"email": "需从 CMU 页面获取", "github": "待查", "homepage": "https://shuyanzhou.github.io/ (推测)", "scholar": "https://scholar.google.com/citations?user=t6YzEpgAAAAJ", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2307.13854", "title": "WebArena (ICLR 2024)"}], "risk_flags": ["学术路径可能性高"], "notes": "browser agent 评测关键合作方。"}, {"id": "charles-packer-letta", "name": "Charles Packer", "current_role": "Co-founder & CEO, Letta (AI agent memory infra)", "current_institution": "Letta (Berkeley AI Research spinout)", "location": "Berkeley, CA, USA", "primary_profile": "Memory / Context / Latent Communication", "secondary_profiles": ["Agent Runtime / Orchestration"], "core_contribution_mode": ["系统构建", "理论研究"], "score_total": 78, "score_breakdown": {"direction_match": 24, "engineering": 18, "theory": 12, "open_source": 9, "evals": 5, "availability": 2, "young_bonus": 3, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 5}, "recommended_mode": "community_collaboration", "why_fit": "MemGPT 一作,把 LLM 的 memory 管理抽象为'OS 级 paging',是 Joule 关心的 token 调度约束架构在 agent memory 方向的奠基工作。Letta CEO,不可全职,但可以做 memory infra 合作、共建 benchmark、互推标准。", "public_contacts": {"email": "contact via Letta (https://www.letta.com)", "github": "https://github.com/cpacker", "homepage": "https://www.letta.com/", "scholar": "https://scholar.google.com/citations (Charles Packer)", "x": "https://twitter.com/charlespacker (推测)", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2310.08560", "title": "MemGPT: Towards LLMs as Operating Systems"}, {"type": "homepage", "url": "https://www.letta.com/", "title": "Letta (company)"}], "risk_flags": ["CEO,不可能全职转岗", "可能视 Joule 为潜在竞争对手"], "notes": "定位为共同定义 agent memory benchmark / 互相引用的合作方。"}, {"id": "junchen-jiang-uchicago", "name": "Junchen Jiang", "current_role": "Associate Professor", "current_institution": "University of Chicago, CS", "location": "Chicago, IL, USA", "primary_profile": "Memory / Context / Latent Communication", "secondary_profiles": ["Agent Runtime / Orchestration"], "core_contribution_mode": ["系统构建", "理论研究"], "score_total": 78, "score_breakdown": {"direction_match": 24, "engineering": 18, "theory": 14, "open_source": 9, "evals": 5, "availability": 3, "young_bonus": 0, "penalty_locked": -5, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 0}, "recommended_mode": "community_collaboration", "why_fit": "LMCache PI,系统研究 networked systems / video / LLM serving,把 KV cache 当跨引擎/跨查询共享的一等公民来做。Joule 海量 token 调度约束架构在系统层最合适的学术合作者。", "public_contacts": {"email": "junchenj@uchicago.edu (推测)", "github": "https://github.com/junchenjiang (推测)", "homepage": "https://people.cs.uchicago.edu/~junchenj/ (推测)", "scholar": "待搜", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2510.09665", "title": "LMCache (2510.09665)"}, {"type": "github", "url": "https://github.com/LMCache/LMCache", "title": "LMCache project"}], "risk_flags": ["tenure AP,不可全职", "LMCache 可能走商业化"], "notes": "作为系统层合作 PI。"}, {"id": "lutfi-eren-erdogan-berkeley", "name": "Lutfi Eren Erdogan", "current_role": "PhD student", "current_institution": "UC Berkeley (Amir Gholami / Kurt Keutzer 组)", "location": "Berkeley, CA, USA", "primary_profile": "Agent Runtime / Orchestration", "secondary_profiles": ["High-potential Young Talent"], "core_contribution_mode": ["系统构建", "理论研究", "高潜后备"], "score_total": 78, "score_breakdown": {"direction_match": 22, "engineering": 15, "theory": 12, "open_source": 7, "evals": 10, "availability": 8, "young_bonus": 4, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 0}, "recommended_mode": "full_time_priority", "why_fit": "Plan-and-Act(ICML 2025)一作,long-horizon planning + executor 分层。Berkeley BAIR。", "public_contacts": {"email": "lerdogan@berkeley.edu (推测)", "github": "待查", "homepage": "https://lutfieren.github.io/ (推测)", "scholar": "待搜", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2503.09572", "title": "Plan-and-Act (ICML 2025)"}], "risk_flags": ["Berkeley 毕业生通常走硅谷大厂"], "notes": ""}, {"id": "kilian-lieret-princeton", "name": "Kilian Lieret", "current_role": "Research Software Engineer / collaborator, Princeton", "current_institution": "Princeton University", "location": "Princeton, NJ, USA", "primary_profile": "Task Evaluation / Benchmark / Evals", "secondary_profiles": ["Agent Runtime / Orchestration"], "core_contribution_mode": ["评测体系", "系统构建"], "score_total": 77, "score_breakdown": {"direction_match": 19, "engineering": 17, "theory": 10, "open_source": 9, "evals": 14, "availability": 6, "young_bonus": 2, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 0}, "recommended_mode": "community_collaboration", "why_fit": "SWE-bench / SWE-smith / SWE-agent 工程落地的关键 builder,熟悉评测 infra 的 reproducibility 和自动化生成任务实例的流水线。对 Joule 如果要自建长时程 code agent 评测有直接启发。", "public_contacts": {"email": "需从 SWE-bench 维护者页面获取", "github": "https://github.com/klieret", "homepage": "https://www.lieret.net/ (推测)", "scholar": "待搜", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "github", "url": "https://github.com/klieret", "title": "Active SWE-bench maintainer"}, {"type": "arxiv", "url": "https://arxiv.org/abs/2504.21798", "title": "SWE-smith (co-author)"}], "risk_flags": [], "notes": "工程导向,较适合 community co-build。"}, {"id": "noah-shinn-sierra", "name": "Noah Shinn", "current_role": "Researcher / Engineer at Sierra", "current_institution": "Sierra (Bret Taylor's co.)", "location": "USA", "primary_profile": "Task Evaluation / Benchmark / Evals", "secondary_profiles": ["Agent Runtime / Orchestration"], "core_contribution_mode": ["评测体系", "理论研究"], "score_total": 77, "score_breakdown": {"direction_match": 21, "engineering": 15, "theory": 13, "open_source": 7, "evals": 15, "availability": 3, "young_bonus": 3, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 0}, "recommended_mode": "community_collaboration", "why_fit": "Reflexion 一作 + tau-bench 合著,agent 自反思与 tool-use 长对话评测的代表性研究者。Sierra 是其主要 affiliation。", "public_contacts": {"email": "待查", "github": "https://github.com/noahshinn024", "homepage": "https://noahshinn.com/ (推测)", "scholar": "待搜", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2406.12045", "title": "tau-bench"}, {"type": "arxiv", "url": "https://arxiv.org/abs/2303.11366", "title": "Reflexion (NeurIPS 2023)"}], "risk_flags": ["Sierra 锁定"], "notes": "benchmark 共建合作。"}, {"id": "liangsheng-yin-berkeley", "name": "Liangsheng Yin", "current_role": "PhD student, SGLang maintainer", "current_institution": "UC Berkeley", "location": "Berkeley, CA, USA", "primary_profile": "Memory / Context / Latent Communication", "secondary_profiles": ["Agent Runtime / Orchestration", "High-potential Young Talent"], "core_contribution_mode": ["系统构建", "高潜后备"], "score_total": 76, "score_breakdown": {"direction_match": 21, "engineering": 18, "theory": 9, "open_source": 9, "evals": 4, "availability": 8, "young_bonus": 5, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": -3, "penalty_application_layer": 0}, "recommended_mode": "full_time_priority", "why_fit": "SGLang 的主 maintainer,是该项目日常工程落地的核心。对 scheduling、cache、attention kernel 都熟悉。**实际手在敲 token 调度生产代码**的人,Joule 需要这种 IC。", "public_contacts": {"email": "需从 lsyin.me 联系或 github 直发", "github": "https://github.com/Ying1123 (待验证是否为同一人)", "homepage": "https://www.lsyin.me/", "scholar": "待搜", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "homepage", "url": "https://www.lsyin.me/", "title": "Personal homepage"}, {"type": "github", "url": "https://github.com/sgl-project/sglang", "title": "SGLang maintainer activity"}], "risk_flags": ["仍在 Berkeley,Ion Stoica 的学生大概率被 LMSYS/自创业吸收"], "notes": "非常匹配 Joule 的 founding engineer 画像,但竞争激烈。"}, {"id": "sarah-wooders-letta", "name": "Sarah Wooders", "current_role": "Co-founder & CTO, Letta", "current_institution": "Letta", "location": "Berkeley, CA, USA", "primary_profile": "Memory / Context / Latent Communication", "secondary_profiles": ["Agent Runtime / Orchestration"], "core_contribution_mode": ["系统构建"], "score_total": 76, "score_breakdown": {"direction_match": 23, "engineering": 18, "theory": 10, "open_source": 8, "evals": 5, "availability": 2, "young_bonus": 3, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 7}, "recommended_mode": "community_collaboration", "why_fit": "MemGPT 合著,Letta CTO,focus on stateful agents with memory。MLOps Community 有系统讨论 '生产级 stateful agent memory 管理'。可作为 memory 方向长期合作方。", "public_contacts": {"email": "via letta.com", "github": "https://github.com/sarah-wooders (推测)", "homepage": "https://www.letta.com/about-us", "scholar": "需搜", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2310.08560", "title": "MemGPT co-author"}, {"type": "video", "url": "https://home.mlops.community/public/videos/building-stateful-agents-with-memory-sarah-wooders-agent-hour-2025-02-06", "title": "Building Stateful Agents with Memory talk"}], "risk_flags": ["CTO 锁定"], "notes": "benchmark / infra 合作方向。"}, {"id": "magnus-muller-browser-use", "name": "Magnus Müller", "current_role": "Co-founder & CEO, Browser Use", "current_institution": "Browser Use (YC-backed, ETH Zurich grad student background)", "location": "Zurich / SF", "primary_profile": "Agent Runtime / Orchestration", "secondary_profiles": ["High-potential Young Talent"], "core_contribution_mode": ["系统构建"], "score_total": 76, "score_breakdown": {"direction_match": 22, "engineering": 19, "theory": 8, "open_source": 10, "evals": 5, "availability": 2, "young_bonus": 5, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 5}, "recommended_mode": "community_collaboration", "why_fit": "Browser Use 3 个月 50k⭐,融资 $17M,把 browser agent 的 runtime 做成开源默认选项。Joule 如果做 browser-task 长时程执行,直接相关。年轻,builder 气质极强。", "public_contacts": {"email": "via browser-use.com", "github": "https://github.com/MagMueller", "homepage": "https://www.ycombinator.com/companies/browser-use", "scholar": "不适用", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "github", "url": "https://github.com/browser-use/browser-use", "title": "Browser Use repo"}, {"type": "homepage", "url": "https://www.ycombinator.com/companies/browser-use", "title": "YC page"}], "risk_flags": ["CEO 锁定", "方向重合可能成为竞争关系"], "notes": "Browser 层 runtime 合作或交叉 benchmark。"}, {"id": "jang-hyun-kim-snu", "name": "Jang-Hyun Kim", "current_role": "PhD student", "current_institution": "Seoul National University, MLLab", "location": "Seoul, South Korea", "primary_profile": "Memory / Context / Latent Communication", "secondary_profiles": ["High-potential Young Talent"], "core_contribution_mode": ["理论研究", "系统构建", "高潜后备"], "score_total": 76, "score_breakdown": {"direction_match": 22, "engineering": 15, "theory": 13, "open_source": 8, "evals": 6, "availability": 8, "young_bonus": 4, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 0}, "recommended_mode": "full_time_priority", "why_fit": "KVzip(NeurIPS 2025 Oral)一作,query-agnostic KV cache 压缩与上下文重建,3-4× 压缩 + 2× decoding 提速。对 Joule token 调度下的 cache 复用与重建是一个可直接落地的组件路线。", "public_contacts": {"email": "需从 snu-mllab 主页获取", "github": "https://github.com/snu-mllab (组)", "homepage": "待搜", "scholar": "待搜", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2505.23416", "title": "KVzip (NeurIPS 2025 Oral)"}], "risk_flags": ["跨境招聘需考虑签证与语言"], "notes": "非英文/美系 PhD 的高性价比候选。"}, {"id": "aohan-zeng-thu", "name": "Aohan Zeng", "current_role": "PhD (THUKEG)", "current_institution": "Tsinghua University KEG", "location": "Beijing, China", "primary_profile": "Memory / Context / Latent Communication", "secondary_profiles": ["Agent Runtime / Orchestration", "High-potential Young Talent"], "core_contribution_mode": ["系统构建", "高潜后备"], "score_total": 76, "score_breakdown": {"direction_match": 20, "engineering": 17, "theory": 12, "open_source": 9, "evals": 10, "availability": 7, "young_bonus": 4, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": -3, "penalty_application_layer": 0}, "recommended_mode": "full_time_priority", "why_fit": "GLM-130B 训练核心 + AgentBench 共同作者。超大模型训练 + agent 系统双 buff,在中国 agent 方向极稀缺。", "public_contacts": {"email": "待查", "github": "https://github.com/Sengxian (推测)", "homepage": "待搜", "scholar": "待搜", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2308.03688", "title": "AgentBench co-author"}, {"type": "arxiv", "url": "https://arxiv.org/abs/2210.02414", "title": "GLM-130B"}], "risk_flags": ["大概率被 Zhipu AI 锁定"], "notes": "若未完全加入 Zhipu 即可接触。"}, {"id": "tri-dao-princeton", "name": "Tri Dao", "current_role": "Assistant Professor (Princeton) + Chief Scientist (Together AI)", "current_institution": "Princeton University / Together AI", "location": "Princeton, NJ, USA", "primary_profile": "Memory / Context / Latent Communication", "secondary_profiles": ["Agent Runtime / Orchestration"], "core_contribution_mode": ["理论研究", "系统构建"], "score_total": 75, "score_breakdown": {"direction_match": 23, "engineering": 19, "theory": 15, "open_source": 10, "evals": 5, "availability": 2, "young_bonus": 2, "penalty_locked": -10, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 9}, "recommended_mode": "community_collaboration", "why_fit": "FlashAttention 全家桶 + Mamba 合著,是 attention / state space / 长序列建模核心奠基人。Joule 的 '海量 token' 下 kernel 与 state 管理无法绕开的参考系。", "public_contacts": {"email": "trid@princeton.edu (推测)", "github": "https://github.com/tridao", "homepage": "https://tridao.me/", "scholar": "https://scholar.google.com (Tri Dao)", "x": "https://twitter.com/tri_dao", "linkedin": "未确认"}, "evidence": [{"type": "homepage", "url": "https://tridao.me/", "title": "Personal homepage"}, {"type": "github", "url": "https://github.com/Dao-AILab/flash-attention", "title": "FlashAttention repo"}], "risk_flags": ["Princeton AP + Together CS 双重锁定,不可全职"], "notes": "pure community 合作/顾问。"}, {"id": "yuxiang-wei-uiuc", "name": "Yuxiang Wei", "current_role": "PhD student", "current_institution": "UIUC (Lingming Zhang 组)", "location": "Urbana-Champaign, IL, USA", "primary_profile": "Agent Runtime / Orchestration", "secondary_profiles": ["Task Evaluation / Benchmark / Evals", "High-potential Young Talent"], "core_contribution_mode": ["系统构建", "评测体系", "高潜后备"], "score_total": 75, "score_breakdown": {"direction_match": 21, "engineering": 16, "theory": 10, "open_source": 8, "evals": 12, "availability": 8, "young_bonus": 4, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": -4, "penalty_application_layer": 0}, "recommended_mode": "full_time_priority", "why_fit": "Live-SWE-agent 合著,UIUC 与 Steven Xia 同组 SWE 系统研究。年轻,工程方向强。", "public_contacts": {"email": "待查", "github": "待查", "homepage": "待搜", "scholar": "待搜", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2511.13646", "title": "Live-SWE-agent co-author"}], "risk_flags": ["联系方式不足"], "notes": "可与 Steven Xia 一并接触。"}, {"id": "alexander-wettig-princeton", "name": "Alexander Wettig", "current_role": "PhD student, Princeton NLP", "current_institution": "Princeton University (advisor: Danqi Chen)", "location": "Princeton, NJ, USA", "primary_profile": "Memory / Context / Latent Communication", "secondary_profiles": ["Task Evaluation / Benchmark / Evals", "High-potential Young Talent"], "core_contribution_mode": ["理论研究", "评测体系", "高潜后备"], "score_total": 74, "score_breakdown": {"direction_match": 17, "engineering": 14, "theory": 14, "open_source": 7, "evals": 11, "availability": 7, "young_bonus": 4, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 0}, "recommended_mode": "full_time_priority", "why_fit": "SWE-smith 合著,主攻数据/训练 + 长上下文方向。Princeton NLP 高潜 PhD,年轻可塑性高。", "public_contacts": {"email": "awettig@princeton.edu (推测)", "github": "https://github.com/AlexWettig (推测)", "homepage": "https://www.cs.princeton.edu/~awettig/ (推测)", "scholar": "待搜", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2504.21798", "title": "SWE-smith co-author"}], "risk_flags": ["Princeton NLP 学术惯性"], "notes": "可以先通过共同 paper reading / hackathon 接触。"}, {"id": "lingming-zhang-uiuc", "name": "Lingming Zhang", "current_role": "Associate Professor", "current_institution": "UIUC CS", "location": "Urbana-Champaign, IL, USA", "primary_profile": "Task Evaluation / Benchmark / Evals", "secondary_profiles": ["Agent Runtime / Orchestration"], "core_contribution_mode": ["评测体系", "系统构建"], "score_total": 74, "score_breakdown": {"direction_match": 19, "engineering": 15, "theory": 13, "open_source": 8, "evals": 14, "availability": 3, "young_bonus": 2, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 0}, "recommended_mode": "community_collaboration", "why_fit": "Agentless / Live-SWE-agent / ChatRepair 指导老师,code agent 评测与自动化修复方向深耕。合作价值高。", "public_contacts": {"email": "lingming@illinois.edu", "github": "待查", "homepage": "https://lingming.cs.illinois.edu/", "scholar": "https://scholar.google.com/citations?user=zzbWQE4AAAAJ", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "scholar", "url": "https://scholar.google.com/citations?user=zzbWQE4AAAAJ", "title": "Google Scholar"}], "risk_flags": ["tenure AP"], "notes": "Steven Xia 的导师,联合接触可能性。"}, {"id": "yutaro-yamada-sakana", "name": "Yutaro Yamada", "current_role": "Research Scientist", "current_institution": "Sakana AI", "location": "Tokyo, Japan", "primary_profile": "Scientific Discovery / Research Automation", "secondary_profiles": ["Agent Runtime / Orchestration"], "core_contribution_mode": ["研究自动化", "系统构建"], "score_total": 74, "score_breakdown": {"direction_match": 19, "engineering": 15, "theory": 13, "open_source": 8, "evals": 9, "availability": 4, "young_bonus": 3, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 3}, "recommended_mode": "community_collaboration", "why_fit": "AI Scientist-v2 核心,发表了首篇 AI 自动生成 + 通过 ICLR workshop 评审的论文。Agentic Tree Search + 长时程实验循环直接对应 DeepGraph 科学发现 demo 的目标。", "public_contacts": {"email": "contact via sakana.ai", "github": "https://github.com/SakanaAI", "homepage": "https://yutaroyamada.com/", "scholar": "https://scholar.google.com/citations?user=DPf8O7EAAAAJ", "x": "未确认", "linkedin": "https://www.linkedin.com/in/yutaro-yamada-7393958a/"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2504.08066", "title": "AI Scientist-v2"}, {"type": "github", "url": "https://github.com/SakanaAI/AI-Scientist-v2", "title": "Code repo"}], "risk_flags": ["Sakana AI 锁定"], "notes": "DeepGraph 演示方向的合作方。"}, {"id": "ruoyu-qin-moonshot", "name": "Ruoyu Qin", "current_role": "Engineer / Researcher", "current_institution": "Moonshot AI (Kimi) / Tsinghua 合作", "location": "Beijing, China", "primary_profile": "Memory / Context / Latent Communication", "secondary_profiles": ["Agent Runtime / Orchestration"], "core_contribution_mode": ["系统构建", "理论研究"], "score_total": 74, "score_breakdown": {"direction_match": 24, "engineering": 18, "theory": 12, "open_source": 7, "evals": 5, "availability": 2, "young_bonus": 3, "penalty_locked": -5, "penalty_paper_only": 0, "penalty_no_contact": -2, "penalty_application_layer": 10}, "recommended_mode": "community_collaboration", "why_fit": "Mooncake(FAST 2025 Best Paper)一作,KVCache-centric disaggregated architecture 让 Kimi 多处理 75% 请求。**token 调度架构在生产层的最强案例**。", "public_contacts": {"email": "待查", "github": "https://github.com/kvcache-ai/Mooncake (组)", "homepage": "待搜", "scholar": "待搜", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2407.00079", "title": "Mooncake: KVCache-centric Disaggregated Arch"}, {"type": "github", "url": "https://github.com/kvcache-ai/Mooncake", "title": "Mooncake repo"}], "risk_flags": ["Moonshot 锁定(Kimi 核心)", "中国 AI 公司激烈竞争会留人"], "notes": "通过 community 路径与 Mooncake 团队建立关系。"}, {"id": "gregor-zunic-browser-use", "name": "Gregor Zunic", "current_role": "Co-founder, Browser Use", "current_institution": "Browser Use", "location": "Zurich / SF", "primary_profile": "Agent Runtime / Orchestration", "secondary_profiles": ["High-potential Young Talent"], "core_contribution_mode": ["系统构建"], "score_total": 73, "score_breakdown": {"direction_match": 21, "engineering": 19, "theory": 7, "open_source": 10, "evals": 4, "availability": 2, "young_bonus": 5, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 5}, "recommended_mode": "community_collaboration", "why_fit": "Browser Use 联合创始人,ETH 数据科学背景,工程实现力强。", "public_contacts": {"email": "via browser-use.com", "github": "待查", "homepage": "https://browser-use.com/", "scholar": "不适用", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "github", "url": "https://github.com/browser-use/browser-use", "title": "Browser Use repo"}], "risk_flags": ["Co-founder 锁定"], "notes": "与 Magnus 一并作为 browser 层合作。"}, {"id": "chen-qian-sjtu", "name": "Chen Qian (钱忱)", "current_role": "Assistant Professor (tenure-track)", "current_institution": "Shanghai Jiao Tong University", "location": "Shanghai, China", "primary_profile": "Agent Runtime / Orchestration", "secondary_profiles": ["Task Evaluation / Benchmark / Evals"], "core_contribution_mode": ["系统构建", "理论研究"], "score_total": 73, "score_breakdown": {"direction_match": 18, "engineering": 15, "theory": 13, "open_source": 9, "evals": 9, "availability": 3, "young_bonus": 2, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 4}, "recommended_mode": "community_collaboration", "why_fit": "ChatDev 一作,SJTU 新任 AP,OpenBMB 生态密切。中文母语合作成本低,THUNLP 出身。", "public_contacts": {"email": "via SJTU CS", "github": "https://github.com/qianc62", "homepage": "https://qianc62.github.io/", "scholar": "https://scholar.google.com/citations?user=Rnsawl0AAAAJ", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "homepage", "url": "https://qianc62.github.io/", "title": "Personal homepage"}], "risk_flags": ["新任 AP,学术锁定"], "notes": "国内学术合作站点。"}, {"id": "shunyu-yao-tencent", "name": "Shunyu Yao (姚顺雨)", "current_role": "Chief AI Scientist (joined 2025-09 per news)", "current_institution": "Tencent", "location": "China", "primary_profile": "Agent Runtime / Orchestration", "secondary_profiles": ["Task Evaluation / Benchmark / Evals"], "core_contribution_mode": ["理论研究", "评测体系", "系统构建"], "score_total": 73, "score_breakdown": {"direction_match": 24, "engineering": 15, "theory": 15, "open_source": 7, "evals": 14, "availability": 1, "young_bonus": 3, "penalty_locked": -10, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 4}, "recommended_mode": "watchlist", "why_fit": "ReAct、Reflexion(合著)、Tree of Thoughts、CoALA、tau-bench 作者;OpenAI Operator / Deep Research / CUA 核心参与者。方向与 Joule 完全同频,但 2025-09 以传闻 $14M 包加入腾讯任 Chief AI Scientist 后完全锁定。", "public_contacts": {"email": "ysymyth 相关域名", "github": "https://github.com/ysymyth", "homepage": "https://ysymyth.github.io/", "scholar": "https://scholar.google.com/citations?user=qJBXk9cAAAAJ", "x": "https://x.com/ShunyuYao12", "linkedin": "未确认"}, "evidence": [{"type": "homepage", "url": "https://ysymyth.github.io/", "title": "Personal homepage"}, {"type": "news", "url": "https://techstartups.com/2025/09/12/tencent-poaches-openai-researcher-yao-shunyu-with-reported-14m-deal-amid-ai-talent-war/", "title": "Tencent joining news"}], "risk_flags": ["Tencent Chief AI Scientist 完全锁定", "高价 package 近期流动可能性低"], "notes": "纳入 watchlist 持续观察;方向对齐极好,偶尔可以做 idea 交流。"}, {"id": "ludovico-mitchener-futurehouse", "name": "Ludovico Mitchener", "current_role": "Researcher", "current_institution": "FutureHouse (Kosmos 一作)", "location": "USA", "primary_profile": "Scientific Discovery / Research Automation", "secondary_profiles": ["Agent Runtime / Orchestration"], "core_contribution_mode": ["研究自动化", "系统构建"], "score_total": 73, "score_breakdown": {"direction_match": 21, "engineering": 14, "theory": 11, "open_source": 6, "evals": 8, "availability": 4, "young_bonus": 3, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 6}, "recommended_mode": "community_collaboration", "why_fit": "Kosmos 一作,长达 12h 的 200+ rollout、42k 行代码、1500 论文/run 的 AI Scientist 框架。**这就是长时程 agent 的极端压力测试**。", "public_contacts": {"email": "via futurehouse.org", "github": "待查", "homepage": "待查", "scholar": "待搜", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2511.02824", "title": "Kosmos: An AI Scientist"}], "risk_flags": ["FutureHouse 锁定"], "notes": ""}, {"id": "yuhan-liu-uchicago", "name": "Yuhan Liu", "current_role": "PhD student", "current_institution": "University of Chicago (LMCache team)", "location": "Chicago, IL, USA", "primary_profile": "Memory / Context / Latent Communication", "secondary_profiles": ["High-potential Young Talent"], "core_contribution_mode": ["系统构建", "高潜后备"], "score_total": 73, "score_breakdown": {"direction_match": 22, "engineering": 16, "theory": 9, "open_source": 8, "evals": 5, "availability": 7, "young_bonus": 4, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": -3, "penalty_application_layer": 5}, "recommended_mode": "full_time_priority", "why_fit": "LMCache 一作(按文章作者顺序),KV cache layer 工程中坚。年轻。", "public_contacts": {"email": "待查", "github": "待查", "homepage": "待搜", "scholar": "待搜", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2510.09665", "title": "LMCache first author"}], "risk_flags": ["LMCache 商业化方向可能", "同名多"], "notes": ""}, {"id": "song-han-mit", "name": "Song Han", "current_role": "Associate Professor (MIT) + Distinguished Scientist (NVIDIA)", "current_institution": "MIT HAN Lab / NVIDIA", "location": "Cambridge, MA, USA", "primary_profile": "Memory / Context / Latent Communication", "secondary_profiles": ["Agent Runtime / Orchestration"], "core_contribution_mode": ["理论研究", "系统构建"], "score_total": 72, "score_breakdown": {"direction_match": 22, "engineering": 18, "theory": 15, "open_source": 9, "evals": 5, "availability": 1, "young_bonus": 0, "penalty_locked": -10, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 12}, "recommended_mode": "community_collaboration", "why_fit": "StreamingLLM、AWQ、SmoothQuant、DuoAttention 等一系列长上下文 + 量化工作的 PI。方向很强,但已深度锁定。", "public_contacts": {"email": "songhan@mit.edu", "github": "https://github.com/mit-han-lab", "homepage": "https://hanlab.mit.edu/", "scholar": "https://scholar.google.com (Song Han)", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "homepage", "url": "https://hanlab.mit.edu/", "title": "MIT HAN Lab"}], "risk_flags": ["MIT + NVIDIA 双重锁定"], "notes": "只能作为顾问/偶尔合作。"}, {"id": "xiang-liu-hkust-gz", "name": "Xiang Liu", "current_role": "PhD student (推测)", "current_institution": "HKUST Guangzhou (Xiaowen Chu / Xuming Hu 团队,推测)", "location": "Guangzhou, China", "primary_profile": "Memory / Context / Latent Communication", "secondary_profiles": ["High-potential Young Talent"], "core_contribution_mode": ["系统构建", "理论研究", "高潜后备"], "score_total": 72, "score_breakdown": {"direction_match": 20, "engineering": 14, "theory": 12, "open_source": 6, "evals": 6, "availability": 8, "young_bonus": 4, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": -3, "penalty_application_layer": 5}, "recommended_mode": "full_time_priority", "why_fit": "ChunkKV(NeurIPS 2025)一作,语义块级 KV 压缩,对 Joule 长上下文 runtime 有直接组件价值。中国大陆高校背景,沟通成本低。", "public_contacts": {"email": "未找到公开邮箱", "github": "待查", "homepage": "未找到公开主页", "scholar": "待搜", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2502.00299", "title": "ChunkKV (NeurIPS 2025)"}], "risk_flags": ["公开联系方式缺失"], "notes": "需定向 outreach;同名风险高,务必用 arXiv 作者页的 ORCID/邮箱确认。"}, {"id": "karthik-narasimhan-princeton-sierra", "name": "Karthik Narasimhan", "current_role": "Associate Professor (Princeton) / Sierra researcher (推测)", "current_institution": "Princeton University", "location": "Princeton, NJ, USA", "primary_profile": "Task Evaluation / Benchmark / Evals", "secondary_profiles": ["Agent Runtime / Orchestration"], "core_contribution_mode": ["理论研究", "评测体系"], "score_total": 72, "score_breakdown": {"direction_match": 20, "engineering": 12, "theory": 14, "open_source": 7, "evals": 14, "availability": 2, "young_bonus": 0, "penalty_locked": -5, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 8}, "recommended_mode": "community_collaboration", "why_fit": "ReAct、Reflexion、tau-bench 等多篇 agent 基础工作合著,Princeton NLP 方向重要 PI。", "public_contacts": {"email": "karthikn@princeton.edu (推测)", "github": "待查", "homepage": "https://www.cs.princeton.edu/~karthikn/", "scholar": "待搜", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2406.12045", "title": "tau-bench co-author"}], "risk_flags": ["Princeton AP 锁定"], "notes": "community 合作。"}, {"id": "sanjay-kariyappa-sidequest", "name": "Sanjay Kariyappa", "current_role": "Faculty / Researcher (推测 Georgia Tech)", "current_institution": "Georgia Tech (推测) 或其他", "location": "USA (推测)", "primary_profile": "Memory / Context / Latent Communication", "secondary_profiles": ["Agent Runtime / Orchestration"], "core_contribution_mode": ["理论研究", "系统构建"], "score_total": 72, "score_breakdown": {"direction_match": 24, "engineering": 12, "theory": 12, "open_source": 5, "evals": 8, "availability": 4, "young_bonus": 0, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": -3, "penalty_application_layer": 10}, "recommended_mode": "community_collaboration", "why_fit": "SideQuest 一作,model-driven KV cache management for long-horizon agentic reasoning,仅 215 个训练样本即实现 65% peak token reduction。**命题描述几乎就是 Joule 的问题陈述**。", "public_contacts": {"email": "待查", "github": "待查", "homepage": "待搜", "scholar": "待搜", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2602.22603", "title": "SideQuest: Model-Driven KV Cache for Long-Horizon Agentic Reasoning"}], "risk_flags": ["身份信息需验证", "联系方式未确认"], "notes": "**论文命题与 Joule 最接近,务必接触并验证其身份 + 合作意向**。"}, {"id": "nicholas-lee-berkeley", "name": "Nicholas Lee", "current_role": "PhD student", "current_institution": "UC Berkeley", "location": "Berkeley, CA, USA", "primary_profile": "Agent Runtime / Orchestration", "secondary_profiles": ["High-potential Young Talent"], "core_contribution_mode": ["系统构建", "理论研究"], "score_total": 72, "score_breakdown": {"direction_match": 20, "engineering": 14, "theory": 12, "open_source": 6, "evals": 10, "availability": 7, "young_bonus": 4, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": -1, "penalty_application_layer": 0}, "recommended_mode": "full_time_priority", "why_fit": "Plan-and-Act 合著,同样 Berkeley 训练体系。", "public_contacts": {"email": "待查", "github": "待查", "homepage": "待搜", "scholar": "待搜", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2503.09572", "title": "Plan-and-Act co-author"}], "risk_flags": ["身份同名多,需精准确认"], "notes": ""}, {"id": "robert-tjarko-lange-sakana", "name": "Robert Tjarko Lange", "current_role": "Research Scientist", "current_institution": "Sakana AI", "location": "Tokyo, Japan", "primary_profile": "Scientific Discovery / Research Automation", "secondary_profiles": ["Agent Runtime / Orchestration"], "core_contribution_mode": ["研究自动化", "理论研究"], "score_total": 71, "score_breakdown": {"direction_match": 18, "engineering": 13, "theory": 13, "open_source": 8, "evals": 9, "availability": 4, "young_bonus": 3, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 3}, "recommended_mode": "community_collaboration", "why_fit": "AI Scientist-v1/v2 关键作者。演化计算 + agentic tree search 专家。", "public_contacts": {"email": "via sakana.ai", "github": "https://github.com/RobertTLange", "homepage": "https://roberttlange.github.io/", "scholar": "待搜", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2504.08066", "title": "AI Scientist-v2 co-author"}], "risk_flags": ["Sakana AI 锁定"], "notes": ""}, {"id": "aymeric-roucher-hf", "name": "Aymeric Roucher", "current_role": "Research Engineer / smolagents author", "current_institution": "Hugging Face", "location": "Paris, France", "primary_profile": "Agent Runtime / Orchestration", "secondary_profiles": [], "core_contribution_mode": ["系统构建"], "score_total": 71, "score_breakdown": {"direction_match": 18, "engineering": 17, "theory": 7, "open_source": 10, "evals": 7, "availability": 4, "young_bonus": 3, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 5}, "recommended_mode": "community_collaboration", "why_fit": "smolagents 主作者,code-first agent 最优雅的极简实现。Joule 可以借其 CodeAgent 范式做 runtime 简化。", "public_contacts": {"email": "via huggingface.co", "github": "https://github.com/aymeric-roucher (推测)", "homepage": "https://huggingface.co/aymeric-roucher", "scholar": "不适用", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "github", "url": "https://github.com/huggingface/smolagents", "title": "smolagents repo"}, {"type": "homepage", "url": "https://huggingface.co/blog/smolagents", "title": "HF blog"}], "risk_flags": ["HF 员工,锁定度中"], "notes": ""}, {"id": "hongliang-he-webvoyager", "name": "Hongliang He", "current_role": "Researcher / PhD (推测)", "current_institution": "Westlake University 或合作机构(WebVoyager 一作)", "location": "China", "primary_profile": "Task Evaluation / Benchmark / Evals", "secondary_profiles": ["Agent Runtime / Orchestration", "High-potential Young Talent"], "core_contribution_mode": ["评测体系", "系统构建", "高潜后备"], "score_total": 71, "score_breakdown": {"direction_match": 19, "engineering": 14, "theory": 10, "open_source": 7, "evals": 13, "availability": 6, "young_bonus": 4, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": -2, "penalty_application_layer": 0}, "recommended_mode": "full_time_priority", "why_fit": "WebVoyager(ACL 2024)一作,15 个 real-world 网站 643 任务 benchmark + GPT-4V 自动评测协议。中文背景合作成本低。", "public_contacts": {"email": "待查", "github": "https://github.com/MinorJerry (推测)", "homepage": "待搜", "scholar": "待搜", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2401.13919", "title": "WebVoyager (ACL 2024)"}, {"type": "github", "url": "https://github.com/MinorJerry/WebVoyager", "title": "WebVoyager repo"}], "risk_flags": ["身份确认需加强"], "notes": ""}, {"id": "cong-lu-ubc-sakana", "name": "Cong Lu", "current_role": "PhD / Postdoc 推测 + Sakana AI consultant", "current_institution": "UBC / Sakana AI", "location": "Canada / Japan", "primary_profile": "Scientific Discovery / Research Automation", "secondary_profiles": ["High-potential Young Talent"], "core_contribution_mode": ["研究自动化", "理论研究", "高潜后备"], "score_total": 70, "score_breakdown": {"direction_match": 18, "engineering": 12, "theory": 13, "open_source": 7, "evals": 9, "availability": 6, "young_bonus": 4, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 1}, "recommended_mode": "full_time_priority", "why_fit": "AI Scientist 系列作者,Jeff Clune / Jakob Foerster 门下,RL + open-endedness 方向。年轻。", "public_contacts": {"email": "待查", "github": "待查", "homepage": "https://jparkerholder.github.io/ (?)——需重搜,暂不确定", "scholar": "待搜", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2504.08066", "title": "AI Scientist-v2"}], "risk_flags": ["身份确认不足,同名风险"], "notes": "待补验证。"}, {"id": "wentao-zhang-ntu", "name": "Wentao Zhang", "current_role": "PhD (推测)", "current_institution": "NTU / 相关机构 (AgentOrchestra 一作)", "location": "Singapore / China", "primary_profile": "Agent Runtime / Orchestration", "secondary_profiles": ["Task Evaluation / Benchmark / Evals"], "core_contribution_mode": ["系统构建", "评测体系"], "score_total": 70, "score_breakdown": {"direction_match": 19, "engineering": 14, "theory": 10, "open_source": 6, "evals": 11, "availability": 7, "young_bonus": 3, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 0}, "recommended_mode": "full_time_priority", "why_fit": "AgentOrchestra(89.04% GAIA)一作,把 orchestration 抽象为 TEA 协议 + 版本化生命周期,runtime 架构思考清晰。", "public_contacts": {"email": "待查", "github": "待查", "homepage": "待搜", "scholar": "待搜", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2506.12508", "title": "AgentOrchestra"}], "risk_flags": ["同名多,需精确定位"], "notes": ""}, {"id": "g-edward-suh-cornell", "name": "G. Edward Suh", "current_role": "Professor", "current_institution": "Cornell University (推测 Cornell ECE)", "location": "Ithaca, NY, USA", "primary_profile": "Memory / Context / Latent Communication", "secondary_profiles": ["Agent Runtime / Orchestration"], "core_contribution_mode": ["理论研究", "系统构建"], "score_total": 68, "score_breakdown": {"direction_match": 20, "engineering": 11, "theory": 13, "open_source": 4, "evals": 7, "availability": 1, "young_bonus": 0, "penalty_locked": -5, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 17}, "recommended_mode": "community_collaboration", "why_fit": "SideQuest 资深合著,系统体系结构与 ML 系统长期学者。合作价值高,但不可全职。", "public_contacts": {"email": "待查", "github": "待查", "homepage": "https://www.csl.cornell.edu/~suh/ (推测)", "scholar": "待搜", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2602.22603", "title": "SideQuest co-author"}], "risk_flags": ["Professor 锁定"], "notes": ""}, {"id": "minsoo-kim-apple", "name": "Minsoo Kim", "current_role": "Research Engineer (推测) / Apple ML", "current_institution": "Apple (EpiCache paper affiliation)", "location": "USA / Cupertino", "primary_profile": "Memory / Context / Latent Communication", "secondary_profiles": ["Agent Runtime / Orchestration"], "core_contribution_mode": ["系统构建"], "score_total": 68, "score_breakdown": {"direction_match": 22, "engineering": 14, "theory": 9, "open_source": 6, "evals": 6, "availability": 3, "young_bonus": 3, "penalty_locked": -5, "penalty_paper_only": 0, "penalty_no_contact": -3, "penalty_application_layer": 13}, "recommended_mode": "community_collaboration", "why_fit": "EpiCache 一作,episodic KV cache management 40% accuracy + 3.5× memory reduction。方向匹配。", "public_contacts": {"email": "待查", "github": "https://github.com/apple/ml-epicache (组)", "homepage": "待搜", "scholar": "待搜", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2509.17396", "title": "EpiCache"}], "risk_flags": ["Apple 锁定"], "notes": ""}, {"id": "joao-moura-crewai", "name": "João Moura", "current_role": "Co-founder & CEO", "current_institution": "CrewAI", "location": "Brazil / remote", "primary_profile": "Agent Runtime / Orchestration", "secondary_profiles": [], "core_contribution_mode": ["系统构建"], "score_total": 67, "score_breakdown": {"direction_match": 17, "engineering": 16, "theory": 5, "open_source": 10, "evals": 4, "availability": 2, "young_bonus": 0, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": 0, "penalty_application_layer": 13}, "recommended_mode": "community_collaboration", "why_fit": "CrewAI 作者,1.4B+ agentic executions 规模,工程应用广度大。方向偏多 agent 编排应用层,与 Joule 关心的 runtime 底层有距离,但生态合作有价值。", "public_contacts": {"email": "via crewai.com", "github": "https://github.com/joaomdmoura", "homepage": "https://blog.crewai.com/author/joao/", "scholar": "不适用", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "github", "url": "https://github.com/joaomdmoura", "title": "GitHub"}, {"type": "homepage", "url": "https://www.crewai.com/", "title": "CrewAI"}], "risk_flags": ["CEO 锁定", "方向偏应用层扣分"], "notes": ""}, {"id": "zhenheng-tang-hkust-gz", "name": "Zhenheng Tang", "current_role": "PhD (推测)", "current_institution": "HKUST-GZ (ChunkKV co-author)", "location": "Guangzhou, China", "primary_profile": "Memory / Context / Latent Communication", "secondary_profiles": ["High-potential Young Talent"], "core_contribution_mode": ["理论研究", "系统构建"], "score_total": 67, "score_breakdown": {"direction_match": 19, "engineering": 12, "theory": 11, "open_source": 6, "evals": 5, "availability": 7, "young_bonus": 4, "penalty_locked": 0, "penalty_paper_only": 0, "penalty_no_contact": -3, "penalty_application_layer": 6}, "recommended_mode": "full_time_priority", "why_fit": "ChunkKV 合著,分布式训练 + 长上下文方向。", "public_contacts": {"email": "待查", "github": "待查", "homepage": "待搜", "scholar": "待搜", "x": "未确认", "linkedin": "未确认"}, "evidence": [{"type": "arxiv", "url": "https://arxiv.org/abs/2502.00299", "title": "ChunkKV co-author"}], "risk_flags": [], "notes": ""}]}</script>
+<script>
+(function(){
+  const DATA = JSON.parse(document.getElementById('data').textContent);
+  const CANDIDATES = DATA.candidates;
+  const PROFILES = [
+    'Agent Runtime / Orchestration',
+    'Memory / Context / Latent Communication',
+    'Scientific Discovery / Research Automation',
+    'Task Evaluation / Benchmark / Evals',
+    'High-potential Young Talent'
+  ];
+  const MODES = ['full_time_priority','community_collaboration','watchlist'];
+  const MODE_LABEL = {full_time_priority:'全职优先',community_collaboration:'社区合作',watchlist:'观察池'};
+
+  const state = {
+    profiles: new Set(),
+    modes: new Set(),
+    scoreMin: 55,
+    scoreMax: 100,
+    identity: 'all',
+    search: '',
+    sort: 'score'
+  };
+
+  function pfClass(p){
+    if(!p) return '';
+    if(p.startsWith('Agent Runtime')) return 'pf-runtime';
+    if(p.startsWith('Memory')) return 'pf-memory';
+    if(p.startsWith('Scientific')) return 'pf-sci';
+    if(p.startsWith('Task Evaluation')) return 'pf-eval';
+    if(p.startsWith('High-potential')) return 'pf-young';
+    return '';
+  }
+
+  function pfShort(p){
+    if(!p) return '';
+    if(p.startsWith('Agent Runtime')) return 'Runtime';
+    if(p.startsWith('Memory')) return 'Memory';
+    if(p.startsWith('Scientific')) return 'SciDisc';
+    if(p.startsWith('Task Evaluation')) return 'Evals';
+    if(p.startsWith('High-potential')) return 'Young';
+    return p;
+  }
+
+  function matchIdentity(c, id){
+    if(id === 'all') return true;
+    const role = (c.current_role || '').toLowerCase();
+    if(id === 'student') return /phd|master|undergrad|student|本科|硕士|博士/.test(role);
+    if(id === 'researcher') return /researcher|professor|faculty|scientist|教授|研究员|pi/.test(role);
+    if(id === 'engineer') return /engineer|developer|staff|tech lead|工程师/.test(role);
+    if(id === 'founder') return /founder|co-founder|ceo|creator|cto|联合创始|创始/.test(role);
+    return true;
+  }
+
+  function filtered(){
+    const q = state.search.trim().toLowerCase();
+    let arr = CANDIDATES.filter(c => {
+      if(state.profiles.size > 0 && !state.profiles.has(c.primary_profile)){
+        const sp = c.secondary_profiles || [];
+        if(!sp.some(p => state.profiles.has(p))) return false;
+      }
+      if(state.modes.size > 0 && !state.modes.has(c.recommended_mode)) return false;
+      if(c.score_total < state.scoreMin || c.score_total > state.scoreMax) return false;
+      if(!matchIdentity(c, state.identity)) return false;
+      if(q){
+        const blob = [
+          c.name, c.current_role, c.current_institution, c.location,
+          c.primary_profile, (c.secondary_profiles||[]).join(' '),
+          c.why_fit, c.notes, (c.risk_flags||[]).join(' '),
+          (c.evidence||[]).map(e=>e.title).join(' ')
+        ].join(' ').toLowerCase();
+        if(!blob.includes(q)) return false;
+      }
+      return true;
+    });
+    if(state.sort === 'score') arr.sort((a,b) => b.score_total - a.score_total);
+    else if(state.sort === 'name') arr.sort((a,b) => a.name.localeCompare(b.name));
+    return arr;
+  }
+
+  function escapeHtml(s){
+    if(s == null) return '';
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function renderScoreBadge(score){
+    let cls = 's55';
+    if(score >= 85) cls = 's85';
+    else if(score >= 70) cls = 's70';
+    return `<div class="card-score ${cls}">${score}</div>`;
+  }
+
+  function renderCard(c){
+    const sp = (c.secondary_profiles||[]).map(p =>
+      `<span class="tag ${pfClass(p)}">${escapeHtml(pfShort(p))}</span>`
+    ).join('');
+    const ccm = (c.core_contribution_mode||[]).map(m =>
+      `<span class="tag">${escapeHtml(m)}</span>`
+    ).join('');
+
+    const sb = c.score_breakdown || {};
+    const scoreRows = [
+      ['direction_match','方向匹配 (0-25)', sb.direction_match],
+      ['engineering','工程实现力 (0-20)', sb.engineering],
+      ['theory','理论潜力 (0-15)', sb.theory],
+      ['open_source','开源协作 (0-10)', sb.open_source],
+      ['evals','Evals 相关 (0-15)', sb.evals],
+      ['availability','可获得性 (0-10)', sb.availability],
+      ['young_bonus','年轻高潜加分 (0-5)', sb.young_bonus, 'bonus'],
+      ['penalty_locked','大厂锁定扣分', sb.penalty_locked, 'penalty'],
+      ['penalty_paper_only','纯论文扣分', sb.penalty_paper_only, 'penalty'],
+      ['penalty_no_contact','联系方式不足扣分', sb.penalty_no_contact, 'penalty'],
+      ['penalty_application_layer','应用包装层扣分', sb.penalty_application_layer, 'penalty']
+    ];
+    const scoreTable = scoreRows.map(r => {
+      const val = r[2];
+      if(val === undefined || val === null) return '';
+      if(r[3] === 'penalty' && val === 0) return `<tr><td>${r[1]}</td><td>—</td></tr>`;
+      const displayVal = r[3] === 'penalty' && val > 0 ? `-${val}` : val;
+      const tdClass = r[3] === 'penalty' && val > 0 ? 'penalty' : (r[3] === 'bonus' && val > 0 ? 'bonus' : '');
+      return `<tr><td>${r[1]}</td><td class="${tdClass}">${displayVal}</td></tr>`;
+    }).join('');
+
+    const evList = (c.evidence || []).map(e =>
+      `<li><span class="ev-type">${escapeHtml(e.type||'')}</span><a href="${escapeHtml(e.url)}" target="_blank" rel="noopener">${escapeHtml(e.title || e.url)}</a></li>`
+    ).join('');
+
+    const pc = c.public_contacts || {};
+    const contactRow = (k, label) => {
+      const v = pc[k];
+      if(!v) return '';
+      const isUrl = /^https?:\/\//.test(v);
+      const shown = isUrl ? `<a href="${escapeHtml(v)}" target="_blank" rel="noopener">${escapeHtml(v)}</a>` : escapeHtml(v);
+      return `<div><span class="ckey">${label}</span>${shown}</div>`;
+    };
+    const contactsHtml =
+      contactRow('email','Email') +
+      contactRow('github','GitHub') +
+      contactRow('homepage','Homepage') +
+      contactRow('scholar','Scholar') +
+      contactRow('x','X / Twitter') +
+      contactRow('linkedin','LinkedIn');
+
+    const risks = (c.risk_flags||[]).map(r => `<span class="risk-tag">${escapeHtml(r)}</span>`).join('');
+
+    return `
+<div class="card" data-id="${escapeHtml(c.id)}">
+<div class="card-head">
+${renderScoreBadge(c.score_total)}
+<div class="card-main">
+<div class="card-name">${escapeHtml(c.name)} <span style="color:var(--muted);font-size:12px;font-weight:400">· ${escapeHtml(c.location||'')}</span></div>
+<div class="card-meta">${escapeHtml(c.current_role||'')} · ${escapeHtml(c.current_institution||'')}</div>
+<div>
+  <span class="tag ${pfClass(c.primary_profile)}">${escapeHtml(pfShort(c.primary_profile))}</span>
+  ${sp}
+  <span class="tag mode-${escapeHtml(c.recommended_mode)}">${escapeHtml(MODE_LABEL[c.recommended_mode]||c.recommended_mode)}</span>
+  ${ccm}
+</div>
+<div class="card-why">${escapeHtml(c.why_fit||'')}</div>
+</div>
+</div>
+<div class="detail">
+<div class="detail-grid">
+<div class="detail-sec">
+<h4>分项得分</h4>
+<table class="score-table">${scoreTable}
+<tr class="total"><td>总分</td><td>${c.score_total}</td></tr>
+</table>
+</div>
+<div class="detail-sec">
+<h4>联系方式(公开可得)</h4>
+<div class="contacts">${contactsHtml || '<span style="color:var(--muted)">未找到</span>'}</div>
+${risks ? `<div class="risk"><h4 style="margin-top:12px">风险提示</h4>${risks}</div>` : ''}
+</div>
+</div>
+<div class="detail-sec" style="margin-top:14px">
+<h4>证据链接(${(c.evidence||[]).length})</h4>
+<ul class="ev-list">${evList || '<li style="color:var(--muted)">未提供证据链接</li>'}</ul>
+</div>
+${c.notes ? `<div class="notes"><b>备注:</b>${escapeHtml(c.notes)}</div>` : ''}
+</div>
+</div>`;
+  }
+
+  function renderList(){
+    const arr = filtered();
+    document.getElementById('list-count').textContent = arr.length;
+    const el = document.getElementById('list');
+    if(arr.length === 0){
+      el.innerHTML = '<div class="empty">无匹配候选人,请调整筛选条件</div>';
+      return;
+    }
+    el.innerHTML = arr.map(renderCard).join('');
+    el.querySelectorAll('.card').forEach(card => {
+      card.addEventListener('click', e => {
+        if(e.target.tagName === 'A') return;
+        card.classList.toggle('expanded');
+      });
+    });
+  }
+
+  function renderBars(containerId, counts, totalLabel){
+    const total = Object.values(counts).reduce((a,b)=>a+b,0);
+    const max = Math.max(...Object.values(counts), 1);
+    const html = Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([k,v]) => {
+      const pct = Math.round((v/max)*100);
+      return `<div class="bar"><span class="bar-lbl" title="${escapeHtml(k)}">${escapeHtml(k)}</span><span class="bar-fill"><span style="width:${pct}%"></span></span><span class="bar-val">${v}</span></div>`;
+    }).join('');
+    document.getElementById(containerId).innerHTML = html;
+  }
+
+  function renderStats(){
+    const profileCounts = {};
+    const modeCounts = {};
+    PROFILES.forEach(p => profileCounts[p] = 0);
+    MODES.forEach(m => modeCounts[m] = 0);
+    let sum = 0, top = 0, full = 0;
+    CANDIDATES.forEach(c => {
+      // primary counts
+      if(profileCounts[c.primary_profile] !== undefined) profileCounts[c.primary_profile]++;
+      // High-potential secondary counted separately
+      if((c.secondary_profiles||[]).includes('High-potential Young Talent')){
+        profileCounts['High-potential Young Talent']++;
+      }
+      modeCounts[c.recommended_mode]++;
+      sum += c.score_total;
+      if(c.score_total >= 85) top++;
+      if(c.recommended_mode === 'full_time_priority') full++;
+    });
+    // Transform keys to short labels for bars
+    const shortProfile = {};
+    Object.entries(profileCounts).forEach(([k,v]) => {
+      shortProfile[pfShort(k)] = v;
+    });
+    const shortMode = {};
+    Object.entries(modeCounts).forEach(([k,v]) => {
+      shortMode[MODE_LABEL[k]] = v;
+    });
+    renderBars('profile-bars', shortProfile);
+    renderBars('mode-bars', shortMode);
+    document.getElementById('count-avg').textContent = (sum/CANDIDATES.length).toFixed(1);
+    document.getElementById('count-top').textContent = top;
+    document.getElementById('count-full').textContent = full;
+  }
+
+  function renderFilters(){
+    const pfEl = document.getElementById('profile-filters');
+    pfEl.innerHTML = PROFILES.map(p =>
+      `<span class="chip ${pfClass(p)}" data-profile="${escapeHtml(p)}">${escapeHtml(pfShort(p))}</span>`
+    ).join('');
+    pfEl.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const p = chip.dataset.profile;
+        if(state.profiles.has(p)){ state.profiles.delete(p); chip.classList.remove('active'); }
+        else { state.profiles.add(p); chip.classList.add('active'); }
+        renderList();
+      });
+    });
+
+    const mdEl = document.getElementById('mode-filters');
+    mdEl.innerHTML = MODES.map(m =>
+      `<span class="chip mode-${m}" data-mode="${m}">${MODE_LABEL[m]}</span>`
+    ).join('');
+    mdEl.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const m = chip.dataset.mode;
+        if(state.modes.has(m)){ state.modes.delete(m); chip.classList.remove('active'); }
+        else { state.modes.add(m); chip.classList.add('active'); }
+        renderList();
+      });
+    });
+
+    const idEl = document.getElementById('identity-filters');
+    idEl.querySelectorAll('.chip').forEach(chip => {
+      if(chip.dataset.identity === 'all') chip.classList.add('active');
+      chip.addEventListener('click', () => {
+        idEl.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        state.identity = chip.dataset.identity;
+        renderList();
+      });
+    });
+  }
+
+  function bindControls(){
+    const smin = document.getElementById('score-min');
+    const smax = document.getElementById('score-max');
+    const sminL = document.getElementById('score-min-lbl');
+    const smaxL = document.getElementById('score-max-lbl');
+    smin.addEventListener('input', () => {
+      state.scoreMin = +smin.value;
+      if(state.scoreMin > state.scoreMax){ smax.value = smin.value; state.scoreMax = state.scoreMin; smaxL.textContent = state.scoreMax; }
+      sminL.textContent = state.scoreMin;
+      renderList();
+    });
+    smax.addEventListener('input', () => {
+      state.scoreMax = +smax.value;
+      if(state.scoreMax < state.scoreMin){ smin.value = smax.value; state.scoreMin = state.scoreMax; sminL.textContent = state.scoreMin; }
+      smaxL.textContent = state.scoreMax;
+      renderList();
+    });
+    document.getElementById('search').addEventListener('input', e => {
+      state.search = e.target.value;
+      renderList();
+    });
+    document.querySelectorAll('.sort').forEach(s => {
+      s.addEventListener('click', () => {
+        state.sort = s.dataset.sort;
+        renderList();
+      });
+    });
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      state.profiles.clear(); state.modes.clear();
+      state.scoreMin = 55; state.scoreMax = 100;
+      state.identity = 'all'; state.search = '';
+      document.querySelectorAll('#profile-filters .chip, #mode-filters .chip').forEach(c => c.classList.remove('active'));
+      document.querySelectorAll('#identity-filters .chip').forEach(c => {
+        c.classList.toggle('active', c.dataset.identity === 'all');
+      });
+      smin.value = 55; smax.value = 100; sminL.textContent = 55; smaxL.textContent = 100;
+      document.getElementById('search').value = '';
+      renderList();
+    });
+  }
+
+  renderStats();
+  renderFilters();
+  bindControls();
+  renderList();
+})();
+</script>
+</body>
+</html>
